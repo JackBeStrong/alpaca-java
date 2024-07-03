@@ -171,7 +171,7 @@ public class AlpacaAPI {
 
         // Create default OkHttpClient instance
         if (okHttpClient == null) {
-            OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+            final OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
             if (LOGGER.isDebugEnabled()) {
                 final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(LOGGER::debug);
                 loggingInterceptor.setLevel(BODY);
@@ -180,14 +180,6 @@ public class AlpacaAPI {
             okHttpClient = clientBuilder.build();
         }
         this.okHttpClient = okHttpClient;
-    }
-
-    /**
-     * Closes the {@link OkHttpClient}.
-     */
-    public void closeOkHttpClient() {
-        okHttpClient.dispatcher().executorService().shutdown();
-        okHttpClient.connectionPool().evictAll();
     }
 
     /**
