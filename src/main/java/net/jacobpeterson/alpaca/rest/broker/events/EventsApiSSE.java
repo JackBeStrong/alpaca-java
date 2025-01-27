@@ -6,6 +6,7 @@ import net.jacobpeterson.alpaca.openapi.broker.ApiException;
 import net.jacobpeterson.alpaca.openapi.broker.api.EventsApi;
 import net.jacobpeterson.alpaca.openapi.broker.model.AccountStatusEvent;
 import net.jacobpeterson.alpaca.openapi.broker.model.JournalStatusEvent;
+import net.jacobpeterson.alpaca.openapi.broker.model.NonTradeActivityEvent;
 import net.jacobpeterson.alpaca.openapi.broker.model.SubscribeToAdminActionSSE200ResponseInner;
 import net.jacobpeterson.alpaca.openapi.broker.model.TradeUpdateEvent;
 import net.jacobpeterson.alpaca.openapi.broker.model.TradeUpdateEventV2;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static net.jacobpeterson.alpaca.openapi.broker.JSON.getGson;
@@ -53,17 +55,17 @@ public class EventsApiSSE {
     }
 
     /**
-     * See {@link EventsApi#getV1EventsNta(String, String, String, Integer, Integer, String, String, Boolean)}.
+     * See {@link EventsApi#getV1EventsNta(String, String, String, Integer, Integer, String, String, Boolean, UUID)}.
      *
      * @return a {@link SSERequest}
      */
     public SSERequest subscribeToNonTradingActivitiesEvents(String id, String since, String until, Integer sinceId,
-            Integer untilId, String sinceUlid, String untilUlid, Boolean includePreprocessing,
-            SSEListener<Object> sseListener) throws ApiException { // TODO OpenAPI response type is broken
+            Integer untilId, String sinceUlid, String untilUlid, Boolean includePreprocessing, UUID groupId,
+            SSEListener<Object> sseListener) throws ApiException {
         final Request request = eventsAPI.getV1EventsNtaCall(id, since, until, sinceId, untilId, sinceUlid, untilUlid,
-                includePreprocessing, null).request();
+                includePreprocessing, groupId, null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
-                new TypeToken<Object>() {}.getType()))); // TODO OpenAPI response type is broken
+                new TypeToken<NonTradeActivityEvent>() {}.getType())));
     }
 
     /**

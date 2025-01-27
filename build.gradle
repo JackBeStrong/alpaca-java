@@ -89,9 +89,9 @@ javadoc {
 
 // These IDs come from the URLs on this page: https://docs.alpaca.markets/openapi
 final def specIDsOfFileNames = Map.of(
-        "trader.json", "657760422129f9005cf4bd58",
-        "broker.json", "657771fc2471d20070183049",
-        "market-data.json", "6577704d1fb6b9007032bf39")
+        "trader.json", "673e19fc6dc876001ff495b2",
+        "broker.json", "673e1a03a0b2160060120aa0",
+        "market-data.json", "673e19f7fd59830026ac651b")
 final File specDownloadPath = new File(project.layout.buildDirectory.get().getAsFile(),
         "/download/openapi/")
 final File generatedClientLibrariesPath = new File(project.layout.buildDirectory.get().getAsFile(),
@@ -196,7 +196,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
     }
 
     doLast {
-        // TODO remove these manual fixes once OpenAPI fixes these issues
+        // TODO remove these manual and hacky fixes once OpenAPI fixes these issues
 
         final def sourceFilesPath = "src/main/java/net/jacobpeterson/alpaca/openapi"
 
@@ -250,7 +250,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
             }
         }
 
-        // Remove the necessary authentication header logic from the generate client's ApiClient
+        // Remove the necessary authentication header logic from the generate client's 'ApiClient'
         specIDsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
             final def apiClientFile = Paths.get(generatedClientLibrariesPath.getPath(), it, sourceFilesPath,
                     it.replace("-", ""), "ApiClient.java").toFile()
@@ -293,20 +293,17 @@ publishing {
             artifactId = projectArtifactID
             version = projectVersion
             from(components["java"])
-
             pom {
                 name = projectArtifactID
                 description = "A Java API for Alpaca, the commission free, algo friendly, stock trading broker."
                 url = "https://github.com/Petersoj/alpaca-java"
                 inceptionYear = "2018"
-
                 licenses {
                     license {
                         name = "MIT License"
                         url = "https://opensource.org/licenses/MIT"
                     }
                 }
-
                 developers {
                     developer {
                         id = "Petersoj"
@@ -317,7 +314,6 @@ publishing {
                         name = "main(String[] args)"
                     }
                 }
-
                 scm {
                     url = "https://github.com/Petersoj/alpaca-java.git"
                     connection = "scm:git:https://github.com/Petersoj/alpaca-java.git"
@@ -326,7 +322,6 @@ publishing {
             }
         }
     }
-
     repositories {
         maven {
             name = "OSSRH"
@@ -339,7 +334,6 @@ publishing {
         }
     }
 }
-
 signing {
     sign publishing.publications.mavenJava
 }
