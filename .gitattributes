@@ -1,7 +1,0 @@
-# Handle line endings automatically for files detected as text and leave all files detected as binary untouched.
-* text=auto
-
-# Declare files that should always have CRLF line endings at checkout.
-*.sln           text eol=crlf
-*.bat           text eol=crlf
-*.cmd           text eol=crlf
