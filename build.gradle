@@ -17,12 +17,13 @@ plugins {
 
     // For Maven Central publishing
     id "maven-publish"
-    id "signing"
+    // Signing disabled for local builds
+    // id "signing"
 }
 
 final def projectGroup = "net.jacobpeterson.alpaca"
 final def projectArtifactID = "alpaca-java"
-final def projectVersion = "10.0.1-SNAPSHOT"
+final def projectVersion = "10.0.2-WEBSOCKET-FIX"
 
 group = projectGroup
 version = projectVersion
@@ -87,11 +88,11 @@ javadoc {
 // BEGIN Alpaca OpenAPI Specification (OAS) client generation
 //
 
-// These IDs come from the URLs on this page: https://docs.alpaca.markets/openapi
-final def specIDsOfFileNames = Map.of(
-        "trader.json", "673e19fc6dc876001ff495b2",
-        "broker.json", "673e1a03a0b2160060120aa0",
-        "market-data.json", "673e19f7fd59830026ac651b")
+// Direct file URLs from: https://docs.alpaca.markets/openapi
+final def specURLsOfFileNames = Map.of(
+        "trader.json", "https://docs.alpaca.markets/openapi/trading-api.json",
+        "broker.json", "https://docs.alpaca.markets/openapi/broker-api.json",
+        "market-data.json", "https://docs.alpaca.markets/openapi/market-data-api.json")
 final File specDownloadPath = new File(project.layout.buildDirectory.get().getAsFile(),
         "/download/openapi/")
 final File generatedClientLibrariesPath = new File(project.layout.buildDirectory.get().getAsFile(),
@@ -105,9 +106,8 @@ def downloadOpenAPISpecFilesTask = tasks.register("downloadOpenAPISpecFiles") {
 
     doLast {
         // Download spec files
-        specIDsOfFileNames.forEach { fileName, alpacaSpecID ->
+        specURLsOfFileNames.forEach { fileName, specURL ->
             final def outputFile = new File(specDownloadPath, fileName)
-            final def specURL = "https://docs.alpaca.markets/openapi/${alpacaSpecID}"
             outputFile.getParentFile().mkdirs()
             try {
                 logger.info("Downloading OpenAPI spec file from: {}", specURL)
@@ -128,7 +128,7 @@ def downloadOpenAPISpecFilesTask = tasks.register("downloadOpenAPISpecFiles") {
 compileJava.dependsOn downloadOpenAPISpecFilesTask
 
 final def generateTasks = []
-for (def specFileName : specIDsOfFileNames.keySet()) {
+for (def specFileName : specURLsOfFileNames.keySet()) {
     final def specName = specFileName.replace(".json", "")
     final def inputSpecFile = new File(specDownloadPath, specFileName)
     final def outputDirectory = new File(generatedClientLibrariesPath, specName)
@@ -214,7 +214,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
         // Remove the JSON validation that the generated client models always run (there isn't an option to
         // disable it for some reason). Also, remove throwing an IllegalArgumentException for a null/empty string
         // given to enum 'fromValue' methods.
-        specIDsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
+        specURLsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
             for (File modelFile : Paths.get(generatedClientLibrariesPath.getPath(),
                     it, sourceFilesPath, it.replace("-", ""), "model").toFile().listFiles()) {
                 modelFile.text = modelFile.text
@@ -235,7 +235,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
         }
 
         // Make certain method signatures in the generated client API classes 'protected' instead of 'public'
-        specIDsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
+        specURLsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
             for (File apiFile : Paths.get(generatedClientLibrariesPath.getPath(),
                     it, sourceFilesPath, it.replace("-", ""), "api").toFile().listFiles()) {
                 // Don't make replacements in the broker 'events' API as that class is wrapped
@@ -251,7 +251,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
         }
 
         // Remove the necessary authentication header logic from the generate client's 'ApiClient'
-        specIDsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
+        specURLsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
             final def apiClientFile = Paths.get(generatedClientLibrariesPath.getPath(), it, sourceFilesPath,
                     it.replace("-", ""), "ApiClient.java").toFile()
             apiClientFile.text = apiClientFile.text
@@ -262,7 +262,7 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
 
         // Make the 'JSON' classes of the generate clients have a static Gson initializer. Also fix the OffsetDateTime
         // Gson type adapter to accommodate ISO local dates.
-        specIDsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
+        specURLsOfFileNames.keySet().stream().map { it.replace(".json", "") }.forEach {
             final def jsonClientFile = Paths.get(generatedClientLibrariesPath.getPath(), it, sourceFilesPath,
                     it.replace("-", ""), "JSON.java").toFile()
             jsonClientFile.text = jsonClientFile.text
@@ -273,6 +273,23 @@ final def fixOpenAPIGeneratedClientIssuesTask = tasks.register("fixOpenAPIGenera
                                     ".atTime(java.time.LocalTime.MIN.atOffset(java.time.ZoneOffset.UTC));\n" +
                                     "}\n" +
                                     "return OffsetDateTime.parse(date, formatter);")
+        }
+
+        // Fix EventsApiSSE.java to handle LocalDate parameters from updated OpenAPI specs
+        // The newer Alpaca OpenAPI specs use LocalDate instead of String for date parameters
+        final def eventsApiSSEFile = new File("src/main/java/net/jacobpeterson/alpaca/rest/broker/events/EventsApiSSE.java")
+        if (eventsApiSSEFile.exists()) {
+            eventsApiSSEFile.text = eventsApiSSEFile.text
+                    .replace("eventsAPI.getV1EventsNtaCall(id, since, until, sinceId",
+                            "eventsAPI.getV1EventsNtaCall(id, since != null ? LocalDate.parse(since) : null, until != null ? LocalDate.parse(until) : null, sinceId")
+                    .replace("eventsAPI.subscribeToJournalStatusSSECall(since, until, sinceId",
+                            "eventsAPI.subscribeToJournalStatusSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId")
+                    .replace("eventsAPI.subscribeToTradeSSECall(since, until, sinceId",
+                            "eventsAPI.subscribeToTradeSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId")
+                    .replace("eventsAPI.subscribeToTradeV2SSECall(since, until, sinceId",
+                            "eventsAPI.subscribeToTradeV2SSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId")
+                    .replace("eventsAPI.subscribeToTransferStatusSSECall(since, until, sinceId",
+                            "eventsAPI.subscribeToTransferStatusSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId")
         }
     }
 }
@@ -328,15 +345,16 @@ publishing {
             url = projectVersion.contains("SNAPSHOT") ? "https://oss.sonatype.org/content/repositories/snapshots/" :
                     "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
             credentials {
-                username = project.property("nexus.username")
-                password = project.property("nexus.password")
+                username = project.hasProperty("nexus.username") ? project.property("nexus.username") : ""
+                password = project.hasProperty("nexus.password") ? project.property("nexus.password") : ""
             }
         }
     }
 }
-signing {
-    sign publishing.publications.mavenJava
-}
+// Signing disabled for local builds
+// signing {
+//     sign publishing.publications.mavenJava
+// }
 
 //
 // END Publishing

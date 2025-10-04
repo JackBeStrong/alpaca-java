@@ -62,7 +62,7 @@ public class EventsApiSSE {
     public SSERequest subscribeToNonTradingActivitiesEvents(String id, String since, String until, Integer sinceId,
             Integer untilId, String sinceUlid, String untilUlid, Boolean includePreprocessing, UUID groupId,
             SSEListener<Object> sseListener) throws ApiException {
-        final Request request = eventsAPI.getV1EventsNtaCall(id, since, until, sinceId, untilId, sinceUlid, untilUlid,
+        final Request request = eventsAPI.getV1EventsNtaCall(id, since != null ? LocalDate.parse(since) : null, until != null ? LocalDate.parse(until) : null, sinceId, untilId, sinceUlid, untilUlid,
                 includePreprocessing, groupId, null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
                 new TypeToken<NonTradeActivityEvent>() {}.getType())));
@@ -90,7 +90,7 @@ public class EventsApiSSE {
     public SSERequest subscribeToJournalStatus(OffsetDateTime since, OffsetDateTime until, Integer sinceId,
             Integer untilId, String sinceUlid, String untilUlid, String id,
             SSEListener<AccountStatusEvent> sseListener) throws ApiException {
-        final Request request = eventsAPI.subscribeToJournalStatusSSECall(since, until, sinceId, untilId, sinceUlid,
+        final Request request = eventsAPI.subscribeToJournalStatusSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId, untilId, sinceUlid,
                 untilUlid, id, null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
                 new TypeToken<JournalStatusEvent>() {}.getType())));
@@ -104,7 +104,7 @@ public class EventsApiSSE {
     public SSERequest subscribeToTrade(OffsetDateTime since, OffsetDateTime until, Integer sinceId,
             Integer untilId, String sinceUlid, String untilUlid, SSEListener<AccountStatusEvent> sseListener)
             throws ApiException {
-        final Request request = eventsAPI.subscribeToTradeSSECall(since, until, sinceId, untilId, sinceUlid, untilUlid,
+        final Request request = eventsAPI.subscribeToTradeSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId, untilId, sinceUlid, untilUlid,
                 null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
                 new TypeToken<TradeUpdateEvent>() {}.getType())));
@@ -117,7 +117,7 @@ public class EventsApiSSE {
      */
     public SSERequest subscribeToTradeV2(OffsetDateTime since, OffsetDateTime until, String sinceId,
             String untilId, SSEListener<AccountStatusEvent> sseListener) throws ApiException {
-        final Request request = eventsAPI.subscribeToTradeV2SSECall(since, until, sinceId, untilId, null).request();
+        final Request request = eventsAPI.subscribeToTradeV2SSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId, untilId, null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
                 new TypeToken<TradeUpdateEventV2>() {}.getType())));
     }
@@ -132,7 +132,7 @@ public class EventsApiSSE {
     public SSERequest subscribeToTransferStatus(OffsetDateTime since, OffsetDateTime until, Integer sinceId,
             Integer untilId, String sinceUlid, String untilUlid, SSEListener<AccountStatusEvent> sseListener)
             throws ApiException {
-        final Request request = eventsAPI.subscribeToTransferStatusSSECall(since, until, sinceId, untilId, sinceUlid,
+        final Request request = eventsAPI.subscribeToTransferStatusSSECall(since != null ? since.toLocalDate() : null, until != null ? until.toLocalDate() : null, sinceId, untilId, sinceUlid,
                 untilUlid, null).request();
         return new SSERequest(eventSourceFactory.newEventSource(request, createEventSourceListener(sseListener,
                 new TypeToken<TransferStatusEvent>() {}.getType())));

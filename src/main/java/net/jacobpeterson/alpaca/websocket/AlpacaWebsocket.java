@@ -84,6 +84,15 @@ public abstract class AlpacaWebsocket extends WebSocketListener implements Alpac
     @Override
     public void connect() {
         if (!isConnected()) {
+            // Close existing websocket before creating a new one to prevent connection accumulation
+            if (websocket != null) {
+                try {
+                    websocket.close(WEBSOCKET_NORMAL_CLOSURE_CODE, WEBSOCKET_NORMAL_CLOSURE_MESSAGE);
+                } catch (Exception e) {
+                    LOGGER.warn("Error closing existing websocket before reconnect", e);
+                }
+            }
+            
             final Request websocketRequest = new Request.Builder()
                     .url(websocketURL)
                     .get()
@@ -192,6 +201,15 @@ public abstract class AlpacaWebsocket extends WebSocketListener implements Alpac
      * Cleans up this instance's state variables.
      */
     protected void cleanupState() {
+        // Ensure websocket is properly closed before cleanup
+        if (websocket != null) {
+            try {
+                websocket.close(WEBSOCKET_NORMAL_CLOSURE_CODE, WEBSOCKET_NORMAL_CLOSURE_MESSAGE);
+            } catch (Exception e) {
+                LOGGER.warn("Error closing websocket during cleanup", e);
+            }
+        }
+        
         websocket = null;
         connected = false;
         authenticated = false;
