@@ -88,6 +88,13 @@ public abstract class AlpacaWebsocket extends WebSocketListener implements Alpac
             if (websocket != null) {
                 try {
                     websocket.close(WEBSOCKET_NORMAL_CLOSURE_CODE, WEBSOCKET_NORMAL_CLOSURE_MESSAGE);
+                    // CRITICAL FIX: Wait for Alpaca's server to process the close
+                    // Without this delay, we create new connections faster than Alpaca can clean up old ones
+                    // This causes "connection limit exceeded" errors during rapid reconnection attempts
+                    Thread.sleep(1000); // 1 second delay to allow server-side cleanup
+                } catch (InterruptedException e) {
+                    LOGGER.warn("Interrupted while waiting for websocket closure", e);
+                    Thread.currentThread().interrupt();
                 } catch (Exception e) {
                     LOGGER.warn("Error closing existing websocket before reconnect", e);
                 }
@@ -205,6 +212,12 @@ public abstract class AlpacaWebsocket extends WebSocketListener implements Alpac
         if (websocket != null) {
             try {
                 websocket.close(WEBSOCKET_NORMAL_CLOSURE_CODE, WEBSOCKET_NORMAL_CLOSURE_MESSAGE);
+                // CRITICAL FIX: Wait for Alpaca's server to process the close
+                // Same issue as connect() - without delay, cleanup happens before server acknowledges close
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                LOGGER.warn("Interrupted while waiting for websocket closure during cleanup", e);
+                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 LOGGER.warn("Error closing websocket during cleanup", e);
             }
